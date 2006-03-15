@@ -1,0 +1,34 @@
+DBIx-ORM-Declarative version 0.06
+======================
+
+DBIx::ORM::Declarative - provides object-oriented access to a database.
+
+DBIx::ORM::Declarative encapsulates the creation of database table classes at
+compile time.  You declare the properties of table and row classes with
+data structures passed to the DBIx::ORM::Declarative module when the module is
+used.  You can also add table classes on the fly.  Best of all, you don't
+need to know a thing about SQL to create or use the classes.
+
+INSTALLATION
+
+To install this module type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+DEPENDENCIES
+
+No non-standard modules are required, but in order to do anything useful,
+you'll need a DBI-compatible database handle.
+
+COPYRIGHT AND LICENCE
+
+Copyright (C) 2006 by Jim Schneider
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.6.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+
