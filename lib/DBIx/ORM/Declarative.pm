@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.06';
+our $VERSION = '0.08';
 
 # How this works:
 # 1)  There are three subclasses - DBIx::ORM::Declarative::Schema,
@@ -500,7 +500,7 @@ sub __create_where
             }
             push @sclause, $test;
         }
-        @clauses = join(' AND ', @sclause);
+        push @clauses, join(' AND ', @sclause) if @sclause;
     }
     my $where = join(' OR ', @clauses);
     return ($where, @binds);

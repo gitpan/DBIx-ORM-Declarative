@@ -20,3 +20,10 @@ Revision history for Perl extension DBIx::ORM::Declarative.
 0.06  Tue Mar 14 19:23:19 2006
     - Added size() table method.
     - Moved to DBIx::ORM::Declarative name.  This is the final name.
+
+0.07  Mon Apr 10 18:40:01 2006
+    - Fixed a typo in __create_where so that multiple clause construction
+      actually works.
+
+0.08  Mon Apr 10 20:49:01 2006
+    - Fixed another typo.
