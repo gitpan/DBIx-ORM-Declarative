@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 # How this works:
 # 1)  There are three subclasses - DBIx::ORM::Declarative::Schema,
@@ -242,7 +242,7 @@ sub table
             for my $k (@$un)
             {
                 next if $seen_keys{$k};
-                $seen_keys{$k} = { sql_name => $k, name => $_,
+                $seen_keys{$k} = { sql_name => $k, name => $k,
                     constraint => 'isnullablestring' };
                 push @newcolumns, $k;
             }
@@ -327,7 +327,7 @@ sub __create_column_accessor
         if(@_)
         {
             my $nval = $_[0];
-            if($nval ne $val)
+            if(not defined $val or $nval ne $val)
             {
                 delete $self->{__data}{$name};
                 $self->{__data}{$name} = $nval if $nval;

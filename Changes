@@ -27,3 +27,7 @@ Revision history for Perl extension DBIx::ORM::Declarative.
 
 0.08  Mon Apr 10 20:49:01 2006
     - Fixed another typo.
+
+0.09  Sun Jul  2 10:06:17 2006
+    - Fixed 'Use of uninitialized value in string ne' warning message.
+    - Fixed missing name in automagic columns created from unique declarations.
