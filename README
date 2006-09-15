@@ -1,4 +1,4 @@
-DBIx-ORM-Declarative version 0.06
+DBIx-ORM-Declarative version 0.10
 ======================
 
 DBIx::ORM::Declarative - provides object-oriented access to a database.
@@ -20,8 +20,7 @@ To install this module type the following:
 
 DEPENDENCIES
 
-No non-standard modules are required, but in order to do anything useful,
-you'll need a DBI-compatible database handle.
+   DBI >= 1.30
 
 COPYRIGHT AND LICENCE
 

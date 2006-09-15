@@ -1,16 +1,15 @@
 package DBIx::ORM::Declarative;
 
-use 5.006;
 use strict;
-use warnings;
 use Carp;
 
-our $VERSION = '0.09';
+use vars qw($VERSION);
+$VERSION = '0.10';
 
 # How this works:
 # 1)  There are three subclasses - DBIx::ORM::Declarative::Schema,
-#     DBIx::ORM::Declarative::Table, and DBIx::ORM::Declarative::Row.  Thanks to the
-#     miracle of Perl inheritence, the class heirarchy is
+#     DBIx::ORM::Declarative::Table, and DBIx::ORM::Declarative::Row.  Thanks
+#     to the miracle of Perl inheritence, the class heirarchy is
 #     DBIx::ORM::Declarative::Row is-a DBIx::ORM::Declarative::Table is-a
 #     DBIx::ORM::Declarative::Schema is-a DBIx::ORM::Declarative
 # 2)  A particular schema also forms its own class -
@@ -21,8 +20,9 @@ our $VERSION = '0.09';
 #     DBIx::ORM::Declarative::Schema::Schema1::Table1::Row is-a
 #     DBIx::ORM::Declarative::Row and-a
 #     DBIx::ORM::Declarative::Schema::Schema1::Table1 is-a
-#     DBIx::ORM::Declarative::Table and-a DBIx::ORM::Declarative::Schema::Schema1
-#     is-a DBIx::ORM::Declarative::Schema
+#     DBIx::ORM::Declarative::Table and-a 
+#     DBIx::ORM::Declarative::Schema::Schema1 is-a
+#     DBIx::ORM::Declarative::Schema
 #     The first parent lets it find the object-specific methods.
 #     The second parent lets it find its schema-specific data methods.
 
@@ -35,6 +35,41 @@ use constant SCHEMA_CLASS => 'DBIx::ORM::Declarative::Schema';
 use constant TABLE_CLASS  => 'DBIx::ORM::Declarative::Table';
 use constant ROW_CLASS    => 'DBIx::ORM::Declarative::Row';
 
+# This applies a method by name - necessary for perl < 5.6
+sub apply_method
+{
+    my ($obj, $method, $wantarray, @args) = @_;
+    my $res = UNIVERSAL::can($obj, $method);
+    if($res)
+    {
+        return $wantarray?($res->($obj, @args)):scalar($res->($obj, @args));
+    }
+    $res = UNIVERSAL::can($obj, 'AUTOLOAD');
+    if($res)
+    {
+        # We can't directly use the result in $res, because we need to know
+        # which AUTOLOAD it found.  Just use eval for now.  *sigh*.
+        my @rv;
+        if($wantarray)
+        {
+            eval "\@rv = \$obj->$method(\@args)";
+        }
+        else
+        {
+            eval "\$rv[0] = \$obj->$method(\@args)";
+        }
+        carp $@ if $@;
+        return $wantarray?@rv:$rv[0];
+    }
+    my $class = ref $obj || $obj;
+    carp qq(Can't locate object method "$method" via package "$class");
+}
+
+# Create a new DBIx::ORM::Declarative object
+# Accepts args as a hash
+# Recognized args are "handle" and "debug"
+# Unrecognized args are ignored
+# If used as an object method, duplicates the underlying object
 sub new
 {
     my ($self, %args) = @_;
@@ -45,29 +80,10 @@ sub new
     return $rv;
 }
 
-# These are necessary because DBI doesn't /really/ pay attention when
-# you tell it not to print out warnings.
-sub __noop { }
+# Use this to supress warnings
+use constant w__noop => sub { };
 
-sub _supress_warnings
-{
-    my ($self) = @_;
-    push @DBIx::ORM::Declarative::Err::warnpool, $SIG{'__WARN__'};
-    $SIG{'__WARN__'} = \&__noop;
-}
-
-sub _restart_warnings
-{
-    if(@DBIx::ORM::Declarative::Err::warnpool)
-    {
-        $SIG{'__WARN__'} = pop @DBIx::ORM::Declarative::Err::warnpool;
-    }
-    else
-    {
-        delete $SIG{'__WARN__'};
-    }
-}
-
+# Custom import method to create schemas during the "use" clause.
 sub import
 {
     my ($package, @args) = @_;
@@ -87,6 +103,7 @@ sub import
     }
 }
 
+# Get or set the DBI handle
 sub handle
 {
     my $self = shift;
@@ -101,6 +118,7 @@ sub handle
     return $self->{__handle};
 }
 
+# Get or set the debug level
 sub debug_level
 {
     my $self = shift;
@@ -113,6 +131,8 @@ sub debug_level
     return $self->{__debug_level};
 }
 
+# Get the current schema name, or switch to a new schema, or create a
+# new schema class.
 sub schema
 {
     my ($self, @args) = @_;
@@ -122,7 +142,7 @@ sub schema
         if(@args==1)
         {
             my $schema = shift @args;
-            return $self->$schema if $schema;
+            return $self->apply_method($schema,wantarray) if $schema;
             return $self;
         }
         my $schema;
@@ -162,6 +182,8 @@ sub schema
 package DBIx::ORM::Declarative::Schema;
 use Carp;
 
+# Get the current table name, or switch to a new table, or create a new
+# table class
 sub table
 {
     my ($self, @args) = @_;
@@ -171,7 +193,7 @@ sub table
         if(@args==1)
         {
             my $table = shift @args;
-            return $self->$table if $table;
+            return $self->apply_method($table, wantarray) if $table;
             return $self;
         }
         my $table;
@@ -506,6 +528,39 @@ sub __create_where
     return ($where, @binds);
 }
 
+# Creates one or more items
+# Does not return row objects
+# Does not validate the input
+# Returns an array of undef or 1 values (depending on reported success)
+sub create_only
+{
+    my ($self, @data) = @_;
+    my $handle = $self->handle;
+    carp "can't create without a database handle" and return unless $handle;
+    carp "can't create a row in a JOIN" and return if $self->_join_clause;
+    my $table = $self->table;
+    carp "can't create a row without a table" and return unless $table;
+    my @cols = map { $_->{name}; } $self->_columns;
+    my %name2sql = $self->_column_map;
+    my @rv = ();
+    # We really don't want any warnings...
+    local ($SIG{__WARN__}) = $self->w__noop;
+    for my $row (@data)
+    {
+        my @use_cols = grep { $row->{$_}; } @cols;
+        my $sql = "INSERT INTO $table (" . join(',', @name2sql{@use_cols})
+            . ') VALUES (' . join(',', ('?') x @use_cols) . ')';
+        my $sth = $handle->prepare_cached($sql);
+        push @rv, undef and next unless $sth;
+        my $rc = $sth->execute(@{$row}{@use_cols});
+        push @rv, $rc?1:undef;
+    }
+    $handle->commit;
+    return @rv;
+}
+
+# Check parameters against the declared constraints and create
+# a row in a table, returning the corresponding row object.
 sub create
 {
     my ($self, %params) = @_;
@@ -528,7 +583,7 @@ sub create
             if(defined $v)
             {
                 my $cons = $col_cons{$k};
-                unless($self->$cons($v))
+                unless($self->apply_method($cons, wantarray, $v))
                 {
                     carp "column $k constraint failed";
                     return;
@@ -566,7 +621,7 @@ sub create
         my $v = delete $params{$k};
         push @icols, $name2sql{$k};
         my $cons = $col_cons{$k};
-        unless($self->$cons($v))
+        unless($self->apply_method($cons, wantarray, $v))
         {
             carp "column $k constraint failed";
             return;
@@ -602,9 +657,8 @@ sub create
             unless($data)
             {
                 carp "Database error: ", $handle->errstr;
-                $self->_supress_warnings;
+                local ($SIG{__WARN__}) = $self->w__noop;
                 $handle->rollback;
-                $self->_restart_warnings;
                 return;
             }
             my $val = $data->[0][0];
@@ -617,9 +671,11 @@ sub create
             }
         }
     }
-    $self->_supress_warnings;
-    $handle->commit;
-    $self->_restart_warnings;
+    # This is in a block because we only want to turn off warnings on commit
+    {
+        local ($SIG{__WARN__}) = $self->w__noop;
+        $handle->commit;
+    }
     my @res = $self->search([
         map {($_, defined($fetch{$_})?(eq => $fetch{$_}):('isnull'))}
         keys %fetch ]);
@@ -628,6 +684,7 @@ sub create
     return $res[0];
 }
 
+# Delete stuff from the database
 sub delete
 {
     my ($self, @criteria) = @_;
@@ -649,17 +706,16 @@ sub delete
     unless($res)
     {
         carp "Database error " . $handle->errstr;
-        $self->_supress_warnings;
+        local ($SIG{__WARN__}) = $self->w__noop;
         $handle->rollback;
-        $self->_restart_warnings;
         return;
     }
-    $self->_supress_warnings;
+    local ($SIG{__WARN__}) = $self->w__noop;
     $handle->commit;
-    $self->_restart_warnings;
     return $self;
 }
 
+# Search the database, return a row object per returned item
 sub search
 {
     my ($self, @criteria) = @_;
@@ -708,7 +764,7 @@ sub search
 
 sub size
 {
-    my ($self) = @_;
+    my ($self, @criteria) = @_;
     my $handle = $self->handle;
     carp "can't find table size without a database handle" and return
         unless $handle;
@@ -716,6 +772,8 @@ sub size
     my $sql = "SELECT COUNT(*) FROM $table";
     my $join = $self->_join_clause;
     $sql .= " $join" if $join;
+    my ($where, @binds) = $self->__create_where(@criteria);
+    $sql .= " WHERE $where" if $where;
     my $data = $handle->selectall_arrayref($sql);
     carp "Database error " . $handle->errstr and return unless $data;
     return $data->[0][0];
@@ -823,9 +881,8 @@ sub commit
     unless($handle->do($sql, undef, @binds))
     {
         carp "Database error: ", $handle->errstr;
-        $self->_supress_warnings;
+        local ($SIG{__WARN__}) = $self->w__noop;
         $handle->rollback;
-        $self->_restart_warnings;
         return;
     }
     undef $self->{__dirty};
@@ -835,9 +892,8 @@ sub commit
         undef $self->{__deleted};
         bless $self, $self->_class;
     }
-    $self->_supress_warnings;
+    local ($SIG{__WARN__}) = $self->w__noop;
     $handle->commit;
-    $self->_restart_warnings;
     return $self;
 }
 
@@ -1125,10 +1181,6 @@ passed no arguments, the table bound to the object (if any) is returned.
 
 Table methods may also be used on row objects, but not schema objects.
 
-=head2 $table->size()
-
-The size() method returns the number of rows in the table (or join).
-
 =head2 $table->search()
 
 The search() method allows you to search for data in a table.  The method
@@ -1218,6 +1270,11 @@ C<order by>.  It expects an array reference of column or alias names.
 
 The search() method returns an array of row objects (one per matching row).
 
+=head2 $table->size()
+
+The size() method returns the number of rows in the table (or join).
+It accepts most of the same criteria as the search() method, except for
+grouping and limit criteria (which are ignored).
 
 =head2 delete()
 
@@ -1230,6 +1287,18 @@ search() method.  B<WARNING> - this method autocommits changes; be careful.
 The create() method creates a new database entry, and returns a row object
 on success (or nothing on failure).  The method expects a list of column
 name - value pairs.  B<WARNING> - this method autocommits changes; be careful.
+
+=head2 create_only()
+
+The create_only() method creates one or more database methods, without
+validating its input against the row constraints for the table, and without
+returning row objects.  It expects a list of hash references, where the keys
+are column names or aliases and the values are the values to be inserted into
+the database.  It returns a list of flags, where a true value indicates that
+the corresponding hash reference was successfully inserted into the table.
+
+B<WARNING> - this method autocommits changes, and it bypasses row constraint
+checking.
 
 =head1 ROW OBJECT METHODS
 
