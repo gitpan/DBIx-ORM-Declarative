@@ -4,7 +4,7 @@ use strict;
 use Carp;
 
 use vars qw($VERSION);
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 # How this works:
 # 1)  There are three subclasses - DBIx::ORM::Declarative::Schema,
@@ -774,7 +774,15 @@ sub size
     $sql .= " $join" if $join;
     my ($where, @binds) = $self->__create_where(@criteria);
     $sql .= " WHERE $where" if $where;
-    my $data = $handle->selectall_arrayref($sql);
+    my $data;
+    if(@binds)
+    {
+        $data = $handle->selectall_arrayref($sql, undef, @binds);
+    }
+    else
+    {
+        $data = $handle->selectall_arrayref($sql, undef, @binds);
+    }
     carp "Database error " . $handle->errstr and return unless $data;
     return $data->[0][0];
 }

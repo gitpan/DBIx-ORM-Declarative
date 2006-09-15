@@ -38,3 +38,6 @@ Revision history for Perl extension DBIx::ORM::Declarative.
     - Added create_only method, which creates one or more rows without
       validating the input or returning row objects.
     - Added WHERE clause handling to the size method.
+
+0.11  Fri Sep 15 14:26:33 2006
+    - Fixed bug in WHERE clause handing in size() method.
