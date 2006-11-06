@@ -4,7 +4,7 @@ use strict;
 use Carp;
 
 use vars qw($VERSION);
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 # How this works:
 # 1)  There are three subclasses - DBIx::ORM::Declarative::Schema,
@@ -39,6 +39,24 @@ use constant ROW_CLASS    => 'DBIx::ORM::Declarative::Row';
 sub apply_method
 {
     my ($obj, $method, $wantarray, @args) = @_;
+    # Check to see if we can apply it directly
+    my @rv;
+    eval
+    {
+        no warnings;    # Turn off warnings in case this doesn't work
+        if($wantarray)
+        {
+            @rv = $obj->$method(@args);
+        }
+        else
+        {
+            $rv[0] = $obj->$method(@args);
+        }
+    } ;
+    if(not $@)
+    {
+        return $wantarray?@rv:$rv[0];
+    }
     my $res = UNIVERSAL::can($obj, $method);
     if($res)
     {
@@ -49,7 +67,6 @@ sub apply_method
     {
         # We can't directly use the result in $res, because we need to know
         # which AUTOLOAD it found.  Just use eval for now.  *sigh*.
-        my @rv;
         if($wantarray)
         {
             eval "\@rv = \$obj->$method(\@args)";
