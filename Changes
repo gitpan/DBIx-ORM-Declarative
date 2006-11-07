@@ -43,4 +43,7 @@ Revision history for Perl extension DBIx::ORM::Declarative.
     - Fixed bug in WHERE clause handing in size() method.
 
 0.12  Sun Nov  5 20:32:47 2006
-    - Fixed misssed case in apply_method; now, coderefs also work as methods.
+    - Fixed missed case in apply_method; now, coderefs also work as methods.
+
+0.13  Mon Nov  6 20:53:10 2006
+    - Added subselect processing for 'IN'/'NOT IN' WHERE clauses.

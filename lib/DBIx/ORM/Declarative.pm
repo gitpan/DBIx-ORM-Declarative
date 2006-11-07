@@ -4,7 +4,7 @@ use strict;
 use Carp;
 
 use vars qw($VERSION);
-$VERSION = '0.12';
+$VERSION = '0.13';
 
 # How this works:
 # 1)  There are three subclasses - DBIx::ORM::Declarative::Schema,
@@ -529,13 +529,23 @@ sub __create_where
                     $test = "$col " . $criteriamap{$op}[0];
                 }
             }
-            else
+            else    # IN/NOT IN
             {
                 $test = "$col " . $criteriamap{$op}[1] . ' (';
                 my $val = shift @subcrit;
-                $test .= join(',',('?')x@$val);
-                $test .= ')';
-                push @binds, @$val;
+                # Is $val a scalar ref?
+                my $subselect;
+                eval { no warnings; $subselect = $$val; };
+                if($subselect)
+                {
+                    $test .= "$subselect)";
+                }
+                else
+                {
+                    $test .= join(',',('?')x@$val);
+                    $test .= ')';
+                    push @binds, @$val;
+                }
             }
             push @sclause, $test;
         }
