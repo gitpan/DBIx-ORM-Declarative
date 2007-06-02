@@ -47,3 +47,13 @@ Revision history for Perl extension DBIx::ORM::Declarative.
 
 0.13  Mon Nov  6 20:53:10 2006
     - Added subselect processing for 'IN'/'NOT IN' WHERE clauses.
+
+0.14  Fri Jun  1 22:37:01 2007
+    Good grief, what *didn't* change?  There's more than 1500 new lines!
+    - Reorganized and annotated the code extensively
+    - Added the beginnings of a real test suite
+    - Added methods to handle creating lots of rows at once
+    - Added classes and methods to better deal with joins; not perfect, but
+      it's better than the earlier join objects.
+    - Added Module::Build-based Build.PL file.  The Makefile.PL file is
+      deprecated, and may be removed in the future.

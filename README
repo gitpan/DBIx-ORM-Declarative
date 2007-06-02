@@ -1,4 +1,4 @@
-DBIx-ORM-Declarative version 0.11
+DBIx-ORM-Declarative version 0.14
 ======================
 
 DBIx::ORM::Declarative - provides object-oriented access to a database.
@@ -21,6 +21,7 @@ To install this module type the following:
 DEPENDENCIES
 
    DBI >= 1.30
+   Scalar::Util
 
 COPYRIGHT AND LICENCE
 
@@ -30,4 +31,9 @@ This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.6.0 or,
 at your option, any later version of Perl 5 you may have available.
 
+NOTE
 
+_*PLEASE*_ see README.MySQL for information on how to set up and run
+the full test suite (such as it is).  You will need a MySQL database
+set up to run them - if you want to convert the tests to another database
+please send me your patches :-D

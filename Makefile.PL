@@ -5,6 +5,6 @@ WriteMakefile(
     NAME              => 'DBIx::ORM::Declarative',
     VERSION_FROM      => 'lib/DBIx/ORM/Declarative.pm',
     AUTHOR            => 'Jim Schneider <perl@jrcsdevelopment.com>',
-    ABSTRACT_FROM     => 'lib/DBIx/ORM/Declarative.pm',
-    PREREQ_PM         => { DBI => 1.30 },
+    ABSTRACT_FROM     => 'lib/DBIx/ORM/Declarative.pod',
+    PREREQ_PM         => { DBI => 1.30, 'Scalar::Util' => 1 },
 );
