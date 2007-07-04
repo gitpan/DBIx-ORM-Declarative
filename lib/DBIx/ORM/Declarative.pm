@@ -9,7 +9,7 @@ use DBIx::ORM::Declarative::Row;
 use DBIx::ORM::Declarative::JRow;
 
 use vars qw($VERSION);
-$VERSION = '0.14';
+$VERSION = '0.15';
 
 use constant BASE_CLASS   => 'DBIx::ORM::Declarative';
 use constant SCHEMA_CLASS => 'DBIx::ORM::Declarative::Schema';
@@ -26,6 +26,26 @@ use constant E_TOOMANYROWS => 'Database error: underdetermined data set';
 
 # The error we return when we've lost the row we just inserted
 use constant E_NOROWSFOUND => 'Database error: inserted data not found';
+
+# We need to register table & join creation methods; otherwise, we
+# may wind up blowing up when we try to deal with a table that has
+# a column with the same name as the table itself
+my %table_methods = ();
+my %join_methods = ();
+
+sub table_method
+{
+    my ($self, $table, $method) = @_;
+    return $table_methods{$table} if $table_methods{$table} and not $method;
+    $table_methods{$table} = $method;
+}
+
+sub join_method
+{
+    my ($self, $join, $method) = @_;
+    return $join_methods{$join} if $join_methods{$join} and not $method;
+    $join_methods{$join} = $method;
+}
 
 # This applies a method by name - necessary for perl < 5.6
 sub apply_method

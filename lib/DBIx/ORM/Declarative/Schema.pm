@@ -114,8 +114,10 @@ sub table
         if(@args==1)
         {
             my $table = shift @args;
-            return $self->apply_method($table, wantarray) if $table;
-            return $self;
+            return $self unless $table;
+            my $meth = $self->table_method($table);
+            return unless $meth;
+            return $meth->($self);
         }
         my $table;
         eval { $table = $self->_table; };
@@ -173,13 +175,17 @@ sub table
     }
 
     # The table object constructor
-    *{$table_class} = sub
+    my $cons = sub
     {
         my ($self) = @_;
         my $rv = $self->new(schema => $schema);
         bless $rv, $table_class unless $rv->isa($table_class);
         return $rv;
     } ;
+
+    *{$table_class} = $cons;
+
+    $self->table_method($name, $cons);
 
     # Handle column information
     my %seen_keys;
@@ -319,8 +325,10 @@ sub join
         if(@args==1)
         {
             my $join = shift @args;
-            return $self->apply_method($join, wantarray) if $join;
-            return $self;
+            return $self unless $join;
+            my $meth = $self->join_method($join);
+            return unless $meth;
+            return $meth->($self);
         }
 
         my $join;
@@ -507,13 +515,17 @@ sub join
     my @sql_cols = sort keys %h;
     *{$join_class . '::_column_sql_names' } = sub { @sql_cols; };
 
-    *{$join_class} = sub
+    my $cons = sub
     {
         my ($self) = @_;
         my $rv = $self->new(schema => $schema);
         bless $rv, $join_class unless $rv->isa($join_class);
         return $rv;
     } ;
+
+    *{$join_class} = $cons;
+
+    $self->join_method($name, $cons);
     
     *{$join_class . '::_join_info'} = sub { @tab_info; };
 
