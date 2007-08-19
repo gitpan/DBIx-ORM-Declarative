@@ -61,3 +61,28 @@ Revision history for Perl extension DBIx::ORM::Declarative.
 0.15  Tue Jul  3 20:16:29 2007
     - Changed table/join creation to better support tables with column names
       that match the table name.
+
+0.16  Wed Jul 25 21:29:55 2007
+    - Fixed table aliases bug introduced with 0.15; aliases now update the
+      table_methods hash
+    - Added implicit subclassing - now, when you do this:
+
+    package Foo;
+    use DBIx::ORM::Declarative
+    (
+        {
+            schema => 'fooschema',
+            # The rest of the declaration...
+        },
+    ) ;
+
+    you can just do this:
+
+    my $db = new Foo handle => $dbh;
+
+    and $db is a schema object.  Note that if you have multiple schemas,
+    Foo will be added as a subclass to all of them.
+
+0.17  Sat Aug 18 10:22:26 2007
+    - Fixed schema class magic to work better with classes that provide
+      an AUTOLOAD function

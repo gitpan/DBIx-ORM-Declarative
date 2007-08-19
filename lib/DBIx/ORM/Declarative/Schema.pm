@@ -104,6 +104,53 @@ sub __make_sql_safe
     $str;
 }
 
+# Create an alias for a table
+sub alias
+{
+    my ($self, @args) = @_;
+    if(@args<2)
+    {
+        if(@args==1)
+        {
+            return $self->table(@args);
+        }
+        my $alias;
+        eval { $alias = $self->_alias; };
+        return $alias;
+    }
+
+    # Create/install a new alias
+    my ($alias, $table) = @args;
+    my $schema_class = ref $self || $self;
+    my $alias_class = $schema_class . "::$alias";
+    my $table_class = $schema_class . "::$table";
+
+    # Set it up
+    no strict 'refs';
+    if(not @{$alias_class . '::ISA'})
+    {
+        @{$alias_class . '::ISA'} = ($table_class);
+        *{$alias_class . '::_class'} = sub { $alias_class; };
+        *{$alias_class . '::_table'} = sub { $alias; };
+        *{$alias_class . '::_alias'} = sub { $table; };
+        my $cons = *{$alias_class} = sub
+        {
+            my ($self) = @_;
+            my $rv = $self->new;
+            bless $rv, $alias_class unless $rv->isa($alias_class);
+            return $rv;
+        } ;
+
+        # Make sure row objects promote to alias objects, NOT table objects
+        my $row_class = $alias_class . '::Rows';
+        @{$row_class . '::ISA'} = ($self->ROW_CLASS, $alias_class);
+        *{$alias_class . '::_row_class'} = sub { $row_class; };
+
+        # Install into the table methods hash
+        $self->table_method($alias, $cons);
+    }
+}
+
 # Get the current table name, or switch to a new table, or create a new
 # table class
 sub table
@@ -178,7 +225,7 @@ sub table
     my $cons = sub
     {
         my ($self) = @_;
-        my $rv = $self->new(schema => $schema);
+        my $rv = $self->new;
         bless $rv, $table_class unless $rv->isa($table_class);
         return $rv;
     } ;
@@ -518,7 +565,7 @@ sub join
     my $cons = sub
     {
         my ($self) = @_;
-        my $rv = $self->new(schema => $schema);
+        my $rv = $self->new;
         bless $rv, $join_class unless $rv->isa($join_class);
         return $rv;
     } ;

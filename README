@@ -1,4 +1,4 @@
-DBIx-ORM-Declarative version 0.15
+DBIx-ORM-Declarative version 0.17
 ======================
 
 DBIx::ORM::Declarative - provides object-oriented access to a database.
@@ -25,7 +25,7 @@ DEPENDENCIES
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2006 by Jim Schneider
+Copyright (C) 2006, 2007 by Jim Schneider
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.6.0 or,

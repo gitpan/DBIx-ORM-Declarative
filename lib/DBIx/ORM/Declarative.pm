@@ -9,7 +9,7 @@ use DBIx::ORM::Declarative::Row;
 use DBIx::ORM::Declarative::JRow;
 
 use vars qw($VERSION);
-$VERSION = '0.15';
+$VERSION = '0.17';
 
 use constant BASE_CLASS   => 'DBIx::ORM::Declarative';
 use constant SCHEMA_CLASS => 'DBIx::ORM::Declarative::Schema';
@@ -165,11 +165,11 @@ sub schema
     my ($self, @args) = @_;
     if(@args<2)
     {
-        return unless ref $self;
         if(@args==1)
         {
             my $schema = shift @args;
-            return $self->apply_method($schema,wantarray) if $schema;
+            return $self->apply_method($schema,wantarray)
+                if $schema and $self->can($schema);
             return $self;
         }
         my $schema;
@@ -199,6 +199,16 @@ sub schema
         # Create the class heirarchy
         @{$schema_class . '::ISA'} = ($self->SCHEMA_CLASS);
 
+        # Let's see if we're called from import...
+        my ($pkg, $file, $line, $sub) = caller(1);
+        if($sub eq __PACKAGE__ . '::import' and $pkg ne 'main')
+        {
+            # Yep - insert ourselves in the upstream @ISA...
+            my $isaref = \@{$pkg . '::ISA'};
+            push @$isaref, $schema_class
+                unless grep { $_ eq $schema_class } @$isaref;
+        }
+
         # Information methods
         *{$schema_class . '::_schema' } = sub { $schema; };
         *{$schema_class . '::_schema_class' } =
@@ -210,7 +220,7 @@ sub schema
         *{$schema_method_name} = sub
         {
             my ($self) = @_;
-            my $rv = $self->new(schema => $schema);
+            my $rv = $self->new;
             bless $rv, $schema_class unless $rv->isa($schema_class);
             return $rv;
         } ;
@@ -220,35 +230,7 @@ sub schema
     $schema_class->table(%$_) foreach @$tables;
 
     # Create the aliases, if we have any
-    for my $alias (keys %$aliases)
-    {
-        # Get the alias name
-        my $table = $aliases->{$alias};
-
-        # Create the class names
-        my $alias_class = $schema_class . "::$alias";
-        my $table_class = $schema_class . "::$table";
-
-        # Set up the heirarchy
-        if(not @{$alias_class . '::ISA'})
-        {
-            @{$alias_class . '::ISA'} = ($table_class);
-            *{$alias_class . '::_class'} = sub { $alias_class; };
-            *{$alias_class . '::_table'} = sub { $alias; };
-            *{$alias_class} = sub
-            {
-                my ($self) = @_;
-                my $rv = $self->new(schema => $schema);
-                bless $rv, $alias_class unless $rv->isa($alias_class);
-                return $rv;
-            } ;
-
-            # Make sure row objects promote themselves to the alias class
-            my $row_class = $alias_class . '::Rows';
-            @{$row_class . '::ISA'} = ($self->ROW_CLASS, $alias_class);
-            *{$alias_class . '::_row_class'} = sub { $row_class; };
-        }
-    }
+    $schema_class->alias($_, $aliases->{$_}) foreach keys %$aliases;
     
     # Create any joins we might have
     $schema_class->join(%$_) foreach @$joins;

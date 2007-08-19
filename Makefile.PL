@@ -7,4 +7,5 @@ WriteMakefile(
     AUTHOR            => 'Jim Schneider <perl@jrcsdevelopment.com>',
     ABSTRACT_FROM     => 'lib/DBIx/ORM/Declarative.pod',
     PREREQ_PM         => { DBI => 1.30, 'Scalar::Util' => 1 },
+    PL_FILES          => { },
 );
