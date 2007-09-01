@@ -86,3 +86,10 @@ Revision history for Perl extension DBIx::ORM::Declarative.
 0.17  Sat Aug 18 10:22:26 2007
     - Fixed schema class magic to work better with classes that provide
       an AUTOLOAD function
+
+0.18  Mon Aug 20 18:57:21 2007
+    - Added support for extensive joins; now you can do joins across sets of
+      tables where no single table has references to all of the others.
+
+0.19  Sat Sep  1 09:30:06 2007
+    - Added functionality to automatically connect to a database.

@@ -459,6 +459,7 @@ sub join
     my %pkeys = map {($_ => 1, $ptab_name . "_$_" => 1)}
         $ptab_obj->_primary_key;
 
+    my @tables_seen;
 
     # Need to clone table info so it doesn't get changed out from under us
     my @tab_info;
@@ -471,14 +472,33 @@ sub join
         carp "No such table '$tab_name'" and return unless $tab_obj;
         my $info_ref = { table => $tab_name };
 
+        # Support secondary table joins
+        my @use_cols = @ptab_cols;
+        my $usetab_name = $ptab_name;
+        my $usetab_alias = $ptab_alias;
+        my $secondary = $tab->{on_secondary};
+        if($secondary)
+        {
+            carp "Secondary table '$secondary' unknown" and return
+                unless grep { $secondary eq $_ } @tables_seen;
+            my $secondary_obj = $self->table($secondary);
+            carp "No such table '$secondary'" and return unless $secondary_obj;
+            $info_ref->{on_secondary} = $secondary;
+            @use_cols = map { $_->{name} } $secondary_obj->_columns;
+            $usetab_name = $secondary;
+            $usetab_alias = $self->__make_sql_safe($usetab_name);
+        }
+
+        push @tables_seen, $tab_name;
+
         my $tab_alias = $self->__make_sql_safe($tab_obj->_table);
 
         my %join_info = %{$tab->{columns}};
         my @tab_cols = $tab_obj->_columns;
         for my $k (keys %join_info)
         {
-            carp "No such key '$k' on primary table" and return
-                unless grep { $k eq $_ } @ptab_cols;
+            carp "No such key '$k' on primary table '$usetab_name'" and return
+                unless grep { $k eq $_ } @use_cols;
             carp "No such key '$k' on secondary table '$tab_name'" and return
                 unless grep { $join_info{$k} eq $_->{name} } @tab_cols;
 
@@ -488,7 +508,7 @@ sub join
             $pkeys{$k} = $pkeys{$join_info{$k}} = 1;
 
             # Save the "where" clause info
-            push @wherefrags, "$ptab_alias.$k = $tab_alias.$join_info{$k}";
+            push @wherefrags, "$usetab_alias.$k = $tab_alias.$join_info{$k}";
         }
         # Save the copy
         push @tab_info, $info_ref;

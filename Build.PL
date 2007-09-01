@@ -8,6 +8,7 @@ Module::Build->new
 (
     module_name        => 'DBIx::ORM::Declarative',
     license            => 'perl',
+    dist_author        => 'Jim Schneider <perl@jrcsdevelopment.com>',
     requires           =>
     {
         'DBI'          => 1.30,

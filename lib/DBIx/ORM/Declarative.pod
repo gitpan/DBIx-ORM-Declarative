@@ -4,6 +4,8 @@ DBIx::ORM::Declarative - Perl extension for object-oriented database access
 
 =head1 SYNOPSIS
 
+  # In, e.g., MyModel.pm
+  package MyModel;
   use DBIx::ORM::Declarative
   (
     {
@@ -46,8 +48,16 @@ DBIx::ORM::Declarative - Perl extension for object-oriented database access
       ],
     }, ...
   );
-  my $db = DBIx::ORM::Declarative->new(handle => $dbh)->schema($schema);
+  
+  1;
+  
+  # In the application class
+  my $db = MyModel->new(handle => $dbh);
+  
+  # Add a table on the fly
   $db->table(table => $name, primary => [ $key, ... ], ...);
+  
+  # Use a table
   my $tab = $db->table_name;
   my @res = $tab->search([$key, $op, $data, ...], ... );
   my $ent = $tab->create($key => $value, ...);
@@ -77,12 +87,19 @@ the B<DBIx::ORM::Declarative> class takes care of all that for you.
 No SQL knowledge is needed for most databases, not even for joins.
 
 The class is customized at compile time by presenting a list of schema
-declarations in the B<use> declaration for the module.  The schema
-declarations are hash references, each of which must have the keys C<schema>
-(which declares the name to be used to bind a particular database declaration
-to an object) and C<tables> (which declares the details of the tables
-themselves).  The key C<limit_clause>, if present, declares a substitution
-pattern for use with limiting searches.  By default, it's
+declarations in the B<use> declaration for the module.  This is accomplished
+by creating a family of new, related classes on the fly.  The base class
+of this family is called the schema class.  As a convenience, this schema
+class is added as a base class of the class where B<DBIx::ORM::Declarative>
+was used; thus, you don't need create B<DBIx::ORM::Declarative> objects
+directly, and you can create subclasses that extend B<DBIx::ORM::Declarative>
+without having to know the intimate details of how the classes work.
+
+The schema declarations are hash references, each of which must have the keys
+C<schema> (which declares the name to be used to bind a particular database
+declaration to an object) and C<tables> (which declares the details of the
+tables themselves).  The key C<limit_clause>, if present, declares a
+substitution pattern for use with limiting searches.  By default, it's
 C<LIMIT %offset%,%count%>, which is suitable for MySQL.  The example above
 is suitable for PostgreSQL.  The key C<joins>, if present, declares relations
 between tables.  More on it later.
@@ -208,14 +225,6 @@ table declaration like this:
     { name => 'CHECK_DT', alias => 'check_dt', },
   ],
 
-The aliases created using the C<table_aliases> key can be used any place
-the aliased table would be used.  This is useful, for example, if you have
-a table named C<address>, and aliases of C<billing_addr> and C<shipping_addr>.
-Not only does this tend to make code easier to read, since you're able to
-use a method that reflects the actual use of the object it operates on,
-it's the easiest way to create a join that uses a table more than once.
-
-
 =head1 NEW JOIN SYNTAX
 
 In addition to declaring tables, the schema declaration can also declare
@@ -317,6 +326,67 @@ fully qualified names for the example above would be:
  table2_col_d
  table2_col_e
 
+=head2 Extensive JOINs
+
+It's possible to set up a collection of tables that you'd like to perform
+an equijoin on, but that don't happen to have a common "primary" table.
+For example, with the following table declarations:
+
+  CREATE TABLE tab1
+  (
+    tab1_id INT PRIMARY KEY,
+    tab1_string TEXT,
+    UNIQUE KEY (tab1_string)
+  ) ;
+
+  CREATE TABLE tab2
+  (
+    tab2_id INT PRIMARY KEY,
+    tab2_string TEXT,
+    UNIQUE KEY (tab2_string)
+  ) ;
+
+  CREATE TABLE tab3
+  (
+    tab3_id INT PRIMARY KEY,
+    tab1_ref INT NOT NULL REFERENCES tab1(tab1_id)
+  ) ;
+
+  CREATE TABLE tab4
+  (
+    tab4_id INT PRIMARY KEY,
+    tab3_ref INT NOT NULL REFERENCES tab3(tab3_id)
+    tab2_ref INT NOT NULL REFERENCES tab2(tab2_id)
+  ) ;
+
+This set of tables has no single table that all of the the other three
+can join on.  C<tab4> comes closest, but it doesn't reach C<tab1> on its own.
+The solution is to use the C<on_secondary> key to declare a secondary table
+to extend the join, like this:
+
+  name    => 'join_name',
+  primary => 'tab4',
+  tables  =>
+  [
+    {
+        table   => 'tab3',
+        columns => { tab3_ref => 'tab3_id' },
+    },
+    {
+        table   => 'tab2',
+        columns => { tab2_ref => 'tab2_id' },
+    },
+    {
+        table        => 'tab1',
+        on_secondary => 'tab3',
+        columns      => { tab1_ref => 'tab1_id' },
+    },
+  ],
+
+For the scope of the table declaration containing the C<on_secondary> key,
+the table named by it is considered to be the primary table.  Note that this
+table must have been previously declared/used in the join.
+
 =head2 Table aliases
 
 In addition to creating an alias for a table in its definition (which actually
@@ -347,10 +417,16 @@ hash of arguments, and expects values for the key C<handle> (which must be a
 DBI-compatible object capable of at least performing the selectall_arrayref(),
 do(), and commit() methods).
 
+If the new() method is passed a value for the key C<dsn>, but not C<handle>,
+U<and> B<DBI> has been loaded, it will call B<DBI>->connect(), using the
+result as a handle.  The username and password are taken from the keys
+C<username> and C<password>, respectively.
+
 If called as an object method, it will return a copy of the current object,
-with suitable overrides depending on its arguments.  Calling new() without
-a handle could be used to create an object factory that uses database handles
-that are created as needed.
+with suitable overrides depending on its arguments.  Calling new() with an
+undefined handle (that is, C<handle => undef> in the args, not with no handle
+declaration at all) could be used to create an object factory that uses
+database handles that are created as needed.
 
 =head2 DBIx::ORM::Declarative->schema
 
@@ -414,7 +490,7 @@ The schema() method is an accessor/mutator to get or set the schema for
 the object.  The accessor method takes no argument and returns the current
 schema name.  The mutator method takes a single argument, which is the name
 of a schema, and returns the schema object.  Note that the object may need
-to be re-bless`ed.
+to be re-bless'ed.
 
 If schema() is passed more than one argument, or the argument is a hash
 reference, the class method version is called.  If the argument is undefined,
@@ -796,7 +872,7 @@ Jim Schneider, E<lt>perl@jrcsdevelopment.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Jim Schneider
+Copyright (C) 2006,2007 by Jim Schneider
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.6.0 or,

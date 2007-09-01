@@ -9,7 +9,7 @@ use DBIx::ORM::Declarative::Row;
 use DBIx::ORM::Declarative::JRow;
 
 use vars qw($VERSION);
-$VERSION = '0.17';
+$VERSION = '0.19';
 
 use constant BASE_CLASS   => 'DBIx::ORM::Declarative';
 use constant SCHEMA_CLASS => 'DBIx::ORM::Declarative::Schema';
@@ -104,8 +104,13 @@ sub new
 {
     my ($self, %args) = @_;
     my $class = ref $self || $self;
-    my $handle = delete $args{handle} || $self->handle;
+    my $handle = exists $args{handle}?$args{handle}:$self->handle;
     my $debug = delete $args{debug} || $self->debug_level || 0;
+    if(not exists $args{handle} and DBI->can('connect') and $args{dsn})
+    {
+        $handle = DBI->connect(@args{qw(dsn username password)},
+            { RaiseError => 0, PrintError => 0, AutoCommit => 0 });
+    }
     my $rv = bless { __handle => $handle, __debug_level => $debug }, $class;
     return $rv;
 }
