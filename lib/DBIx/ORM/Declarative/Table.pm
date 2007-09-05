@@ -314,7 +314,10 @@ sub bulk_create
         my $h = { };
         for my $i (0..$#$cols_ref)
         {
-            $h->{$name2sql{$cols_ref->[$i]}} = $i;
+            if(grep { $name2sql{$cols_ref->[$i]} eq $_ } @$un)
+            {
+                $h->{$name2sql{$cols_ref->[$i]}} = $i;
+            }
         }
         push @uniqs_map, $h if %$h;
     }
@@ -338,7 +341,7 @@ sub bulk_create
                     keys %$un;
                 push @wherefrag, join(' AND ', @wk);
             }
-            $sel .= ' WHERE NOT EXISTS (SELECT 1 FROM $table WHERE (' .
+            $sel .= " WHERE NOT EXISTS (SELECT 1 FROM $table WHERE (" .
                 join(') OR (', @wherefrag) . '))';
         }
         push @selects, $sel;
