@@ -307,16 +307,16 @@ sub bulk_create
     warn "Unknown columns '" . join("', '", @col_unk) . "'" and return
         if @col_unk;
 
-    # We need a map of primary key parts
-    my @pkey = $self->_primary_key;
-    my %pkey_map;
-    for my $i (0..$#$cols_ref)
+    # Map unique keys to avoid duplicates
+    my @uniqs_map;
+    for my $un ($self->_unique_keys)
     {
-        if(grep { $_ eq $cols_ref->[$i] } @pkey)
+        my $h = { };
+        for my $i (0..$#$cols_ref)
         {
-            # No sense in having to do the mapping all over again...
-            $pkey_map{$name2sql{$cols_ref->[$i]}} = $i;
+            $h->{$name2sql{$cols_ref->[$i]}} = $i;
         }
+        push @uniqs_map, $h if %$h;
     }
 
     my $sql = "INSERT INTO $table (" . join(',', @name2sql{@$cols_ref}) . ') ';
@@ -329,12 +329,17 @@ sub bulk_create
     {
         my $sel = 'SELECT ' . join(',', map { $handle->quote($_) } @$d)
             . ' FROM DUAL';
-        if(%pkey_map)
+        if(@uniqs_map)
         {
-            my @wk = map { "$_=" . $handle->quote($d->[$pkey_map{$_}]) }
-                keys %pkey_map;
-            $sel .= " WHERE NOT EXISTS (SELECT 1 FROM $table WHERE "
-                . join(' AND ', @wk) . ')';
+            my @wherefrag = ();
+            for my $un (@uniqs_map)
+            {
+                my @wk = map { "$_=" . $handle->quote($d->[$un->{$_}]) }
+                    keys %$un;
+                push @wherefrag, join(' AND ', @wk);
+            }
+            $sel .= ' WHERE NOT EXISTS (SELECT 1 FROM $table WHERE (' .
+                join(') OR (', @wherefrag) . '))';
         }
         push @selects, $sel;
     }

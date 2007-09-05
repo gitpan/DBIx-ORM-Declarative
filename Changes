@@ -93,3 +93,7 @@ Revision history for Perl extension DBIx::ORM::Declarative.
 
 0.19  Sat Sep  1 09:30:06 2007
     - Added functionality to automatically connect to a database.
+
+0.20  Wed Sep  5 08:50:43 2007
+    - Expanded bulk_create to account for all of the unique keys - not just the
+      primary keys.

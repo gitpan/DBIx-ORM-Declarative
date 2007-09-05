@@ -1,6 +1,6 @@
 ---
 name: DBIx-ORM-Declarative
-version: 0.19
+version: 0.20
 author:
   - 'Jim Schneider <perl@jrcsdevelopment.com>'
 abstract: Perl extension for object-oriented database access
@@ -13,7 +13,7 @@ requires:
 provides:
   DBIx::ORM::Declarative:
     file: lib/DBIx/ORM/Declarative.pm
-    version: 0.19
+    version: 0.20
   DBIx::ORM::Declarative::JRow:
     file: lib/DBIx/ORM/Declarative/JRow.pm
   DBIx::ORM::Declarative::Join:

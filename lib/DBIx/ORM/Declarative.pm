@@ -9,7 +9,7 @@ use DBIx::ORM::Declarative::Row;
 use DBIx::ORM::Declarative::JRow;
 
 use vars qw($VERSION);
-$VERSION = '0.19';
+$VERSION = '0.20';
 
 use constant BASE_CLASS   => 'DBIx::ORM::Declarative';
 use constant SCHEMA_CLASS => 'DBIx::ORM::Declarative::Schema';
