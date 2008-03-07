@@ -1,30 +1,12 @@
----
-name: DBIx-ORM-Declarative
-version: 0.21
-author:
-  - 'Jim Schneider <perl@jrcsdevelopment.com>'
-abstract: Perl extension for object-oriented database access
-license: perl
-resources:
-  license: http://dev.perl.org/licenses/
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         DBIx-ORM-Declarative
+version:      0.22
+version_from: lib/DBIx/ORM/Declarative.pm
+installdirs:  site
 requires:
-  DBI: 1.3
-  Scalar::Util: 1
-provides:
-  DBIx::ORM::Declarative:
-    file: lib/DBIx/ORM/Declarative.pm
-    version: 0.21
-  DBIx::ORM::Declarative::JRow:
-    file: lib/DBIx/ORM/Declarative/JRow.pm
-  DBIx::ORM::Declarative::Join:
-    file: lib/DBIx/ORM/Declarative/Join.pm
-  DBIx::ORM::Declarative::Row:
-    file: lib/DBIx/ORM/Declarative/Row.pm
-  DBIx::ORM::Declarative::Schema:
-    file: lib/DBIx/ORM/Declarative/Schema.pm
-  DBIx::ORM::Declarative::Table:
-    file: lib/DBIx/ORM/Declarative/Table.pm
-generated_by: Module::Build version 0.2805
-meta-spec:
-  url: http://module-build.sourceforge.net/META-spec-v1.2.html
-  version: 1.2
+    DBI:                           1.3
+    Scalar::Util:                  1
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.30

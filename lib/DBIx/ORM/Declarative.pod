@@ -410,6 +410,24 @@ field in the database, or getting lost, when the changes are committed.
 
 =head1 METHODS
 
+=head2 DBIx::ORM::Declarative->import(@schemadefs)
+
+The import() method is called implicitly by the
+C<use B<DBIx::ORM::Declarative>> clause.  It creates the classes and
+methods to support the declared schema, tables, joins, and rows.  It
+will also insert the generated schema class into the I<use>ing class,
+so you can do this:
+
+  package Model;
+  use DBIx::ORM::Declarative # ... schema def
+  ;
+
+And then later, you just do:
+
+  my $model = new Model %args;
+
+Then you can use C<$model> as a schema object directly.
+
 =head2 DBIx::ORM::Declarative->new
 
 The new() method creates a new B<DBIx::ORM::Declarative> object.  It takes a
@@ -418,7 +436,7 @@ DBI-compatible object capable of at least performing the selectall_arrayref(),
 do(), and commit() methods).
 
 If the new() method is passed a value for the key C<dsn>, but not C<handle>,
-U<and> B<DBI> has been loaded, it will call B<DBI>->connect(), using the
+I<and> B<DBI> has been loaded, it will call B<DBI>->connect(), using the
 result as a handle.  The username and password are taken from the keys
 C<username> and C<password>, respectively.
 

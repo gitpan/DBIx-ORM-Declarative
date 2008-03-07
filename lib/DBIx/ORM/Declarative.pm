@@ -9,7 +9,7 @@ use DBIx::ORM::Declarative::Row;
 use DBIx::ORM::Declarative::JRow;
 
 use vars qw($VERSION);
-$VERSION = '0.21';
+$VERSION = '0.22';
 
 use constant BASE_CLASS   => 'DBIx::ORM::Declarative';
 use constant SCHEMA_CLASS => 'DBIx::ORM::Declarative::Schema';
@@ -210,8 +210,7 @@ sub schema
         {
             # Yep - insert ourselves in the upstream @ISA...
             my $isaref = \@{$pkg . '::ISA'};
-            push @$isaref, $schema_class
-                unless grep { $_ eq $schema_class } @$isaref;
+            push @$isaref, $schema_class unless $pkg->isa($schema_class);
         }
 
         # Information methods
